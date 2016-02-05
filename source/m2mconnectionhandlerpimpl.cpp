@@ -59,6 +59,9 @@ M2MConnectionHandlerPimpl::M2MConnectionHandlerPimpl(M2MConnectionHandler* base,
             _socket_stack = SOCKET_STACK_NANOSTACK_IPV6;
             socket_family = SOCKET_AF_INET6;
             break;
+        case M2MInterface::ESP8266:
+            _socket_stack = SOCKET_STACK_ESP8266;
+            break;
         case M2MInterface::Unknown:
             _socket_stack = SOCKET_STACK_MAX;
             break;
