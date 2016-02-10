@@ -17,7 +17,8 @@
 #define M2M_TIMER_PIMPL_H__
 
 #include <stdint.h>
-#include <mbed-drivers/Ticker.h>
+
+#include "mbed-drivers/mbed.h"
 
 #include "mbed-client/m2mtimerobserver.h"
 
@@ -99,7 +100,9 @@ private:
     uint8_t             _status;
     uint64_t            _still_left;
 
-    mbed::Ticker        _ticker;
+//    mbed::Ticker        _ticker;
+
+    minar::callback_handle_t handle;
 
     friend class M2MTimer;
     friend class Test_M2MTimerPimpl_mbed;

@@ -24,14 +24,15 @@ M2MTimerPimpl::M2MTimerPimpl(M2MTimerObserver& observer)
   _intermediate_interval(0),
   _total_interval(0),
   _status(0),
-  _still_left(0)
+  _still_left(0),
+  handle(NULL)
 {
 
 }
 
 M2MTimerPimpl::~M2MTimerPimpl()
 {
-    _ticker.detach();
+//    _ticker.detach();
 }
 
 void M2MTimerPimpl::start_timer( uint64_t interval,
@@ -45,17 +46,30 @@ void M2MTimerPimpl::start_timer( uint64_t interval,
     _interval = interval;
     _still_left = 0;
     _type = type;
-    _ticker.detach();
+//    _ticker.detach();
 
     if(_interval > (2000 * 1000)) {
         _still_left = _interval - (2000 * 1000);
+
+        handle = minar::Scheduler::postCallback(this, &M2MTimerPimpl::still_left_timer_expired)
+          .delay(minar::milliseconds(2000*1000))
+          .getHandle();
+
+/*
         _ticker.attach_us(this,
                       &M2MTimerPimpl::still_left_timer_expired,
                       2000 * 1000 * 1000);
+*/
     } else {
-    _ticker.attach_us(this,
-                  &M2MTimerPimpl::timer_expired,
-                  _interval * 1000);
+        handle = minar::Scheduler::postCallback(this, &M2MTimerPimpl::timer_expired)
+          .delay(minar::milliseconds(_interval))
+          .tolerance(1)
+          .getHandle();
+/*
+        _ticker.attach_us(this,
+                      &M2MTimerPimpl::timer_expired,
+                      _interval * 1000);
+*/
     }
 
 }
@@ -65,11 +79,18 @@ void M2MTimerPimpl::start_dtls_timer(uint64_t intermediate_interval, uint64_t to
     _intermediate_interval = intermediate_interval;
     _total_interval = total_interval;
     _type = type;
-    _ticker.detach();
+//    _ticker.detach();
     _status = 0;
+
+    handle = minar::Scheduler::postCallback(this, &M2MTimerPimpl::dtls_timer_expired)
+      .delay(minar::milliseconds(_intermediate_interval))
+      .tolerance(1)
+      .getHandle();
+/*
     _ticker.attach_us(this,
                       &M2MTimerPimpl::dtls_timer_expired,
                       _intermediate_interval * 1000);
+*/
 }
 
 void M2MTimerPimpl::stop_timer()
@@ -77,7 +98,10 @@ void M2MTimerPimpl::stop_timer()
     _interval = 0;
     _still_left = 0;
     _single_shot = false;
-    _ticker.detach();
+//    _ticker.detach();
+
+    minar::Scheduler::cancelCallback(handle);
+    handle = NULL;
 }
 
 void M2MTimerPimpl::timer_expired()
@@ -90,17 +114,34 @@ void M2MTimerPimpl::timer_expired()
 
 void M2MTimerPimpl::still_left_timer_expired()
 {
-    _ticker.detach();
+//    _ticker.detach();
+
+    minar::Scheduler::cancelCallback(handle);
+    handle = NULL;
+
     if(_still_left > 0) {
         if(_still_left > (2000 * 1000)) {
             _still_left = _still_left - (2000 * 1000);
+
+            handle = minar::Scheduler::postCallback(this, &M2MTimerPimpl::still_left_timer_expired)
+              .delay(minar::milliseconds(2000*1000))
+              .getHandle();
+/*
             _ticker.attach_us(this,
                           &M2MTimerPimpl::still_left_timer_expired,
                           2000 * 1000 * 1000);
+*/
         } else {
+            handle =
+            minar::Scheduler::postCallback(this, &M2MTimerPimpl::still_left_timer_expired)
+              .delay(minar::milliseconds(_still_left))
+              .tolerance(1)
+              .getHandle();
+/*
             _ticker.attach_us(this,
                           &M2MTimerPimpl::still_left_timer_expired,
                           _still_left * 1000);
+*/
             _still_left = 0;
         }
     } else {
@@ -116,11 +157,21 @@ void M2MTimerPimpl::dtls_timer_expired()
     _status++;
     if(_status == 1) {
        _observer.timer_expired(_type);
+
+      handle = minar::Scheduler::postCallback(this, &M2MTimerPimpl::dtls_timer_expired)
+        .delay(minar::milliseconds(_total_interval - _intermediate_interval))
+        .tolerance(1)
+        .getHandle();
+/*
         _ticker.attach_us(this,
                           &M2MTimerPimpl::dtls_timer_expired,
                           (_total_interval - _intermediate_interval) * 1000);
+*/
     }else{
-        _ticker.detach();
+        minar::Scheduler::cancelCallback(handle);
+        handle = NULL;
+
+//        _ticker.detach();
         _observer.timer_expired(_type);
     }
 }
