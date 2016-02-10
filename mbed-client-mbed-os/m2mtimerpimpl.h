@@ -100,9 +100,7 @@ private:
     uint8_t             _status;
     uint64_t            _still_left;
 
-//    mbed::Ticker        _ticker;
-
-    minar::callback_handle_t handle;
+    minar::callback_handle_t _handle;
 
     friend class M2MTimer;
     friend class Test_M2MTimerPimpl_mbed;
